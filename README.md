@@ -1,1 +1,2 @@
-# Data-Visualization-Projects
+# Data-Visualization
+Data visualization labs
