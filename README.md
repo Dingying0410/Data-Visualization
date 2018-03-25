@@ -1,6 +1,6 @@
 # Data-Visualization
-Data visualization labs
-lab2
+Data visualization labs      
+lab2     
 Task 1 
 1.1)  Compute the total number of wins for each of the teams in MLB over 2010-2015, display them in a descending sorted order. 
 1.2)  Compute the average payroll per year for all teams over 2010-2015, displaying them in a descending sorted order 
