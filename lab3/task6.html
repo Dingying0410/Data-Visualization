@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <style>
+
+  .axis {
+    font: 10px sans-serif;
+  }
+
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+
+.tooltip{
+  text-anchor: start;
+  font-family: sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  fill:black; 
+} 
+
+body {
+  text-align: center;
+}
+
+
+  </style>
+</head>
+<body>
+  <h1 id = "title"> </h1>
+  <div>
+  <select id="selection">
+    <option value="0" selected="selected">Lowest 20 Percent</option>
+    <option value="1">Second 20 Percent</option>
+    <option value="2">Third 20 Percent</option>
+    <option value="3">Fourth 20 Percent</option>
+    <option value="4">Highest 20 Percent</option>
+</select>
+</div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+var file = "lowest20.csv";
+var title = "lowest "
+//If the value for the frop down menu changes, update the graph
+d3.select('#selection')
+      .on("change", function () {
+        var sect = document.getElementById("selection");
+        var section = sect.options[sect.selectedIndex].value;
+
+        if (section == 1) {
+          file = "second20.csv";
+          title = "second";
+        } else if (section == 2) {
+          file = "third20.csv";
+          title = "third";
+        } else if (section == 3) {
+          file = "fourth20.csv";
+          title = "fourth"
+        } else if (section == 4) {
+          file = "highest20.csv";
+          title = "highest"
+        } else {
+          file = "lowest20.csv";
+          title = "lowest";
+        }
+        d3.select("svg").remove();
+        update(file, title);
+      });
+var chartWidth = 1100,
+    chartHeight = 800,
+    margin = {top: 20, right: 80, bottom: 100, left: 40},
+    width = chartWidth - margin.left - margin.right,
+    height = chartHeight - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+var y = d3.scale.linear().range([height, 0]);
+
+//x axis
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat('');
+
+//y axis
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickFormat(d3.format(".0%"))
+    .ticks(10);
+
+update(file, title);
+
+function update(file, title) {
+  //change title
+  document.getElementById("title").innerHTML = "Top 50 expenditures for the " + title + " 20% group";
+  var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+  d3.csv('task6Data/' + file, function(error, data) {
+
+    data.forEach(function(d) {
+        d.Expenditure = d.Expenditure;
+        d.percentage = +d.percentage;
+    });
+  
+  x.domain(data.map(function(d) { return d.Expenditure; }));
+  y.domain([0, d3.max(data, function(d) { return d.percentage; })]);
+
+  //x axis
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "-.8em")
+      .attr("dy", "-.55em")
+      .attr("transform", "rotate(-90)" );
+
+  //y axis
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("x", 15)
+      .attr("y", -15)
+      .attr("dy", "1em")
+      .style("text-anchor", "end")
+      .text("Percentage");
+  
+  //Append bar
+  svg.selectAll("bar")
+      .data(data)
+    .enter().append("rect")
+      .style("fill", "steelblue")
+      .attr("stroke", "pink")
+      .attr("x", function(d) { return x(d.Expenditure); })
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.percentage); })
+      .attr("height", function(d) { 
+        return height - y(d.percentage); })
+      .on("mouseover", function(d, i) {
+        var xPos = parseFloat(d3.select(this).attr("x"));
+        var yPos = parseFloat(d3.select(this).attr("y"));
+        var height = parseFloat(d3.select(this).attr("height"));
+
+        d3.select(this).attr("stroke","red").attr("stroke-width",0.8); 
+
+        svg.append("text")
+          .attr("x", 0)
+          .attr("y", yPos + height / 2)
+          .attr("class", "tooltip")
+          .text(
+            d.Expenditure + ": " + (d.percentage * 100).toFixed(1) + "%");
+      })
+      .on("mouseout", function(){
+          svg.select(".tooltip").remove();
+          d3.select(this).attr("stroke","pink").attr("stroke-width",0.2);
+      });
+
+});
+}
+
+</script>
+
+</body>

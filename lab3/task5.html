@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.chart .legend {
+  fill: black;
+  font: 14px sans-serif;
+  text-anchor: start;
+  font-size: 12px;
+}
+
+.chart text {
+  fill: black;
+  font: 10px sans-serif;
+  text-anchor: end;
+}
+
+.chart .label {
+  fill: black;
+  font: 14px sans-serif;
+  text-anchor: start;
+}
+
+.bar:hover {
+  fill: orange;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.axis text {
+  fill: black;
+}
+
+body {
+  text-align: center;
+}
+</style>
+<body>
+<h1> Expenditure percentage for five income groups </h1>
+<h2> United States 2016 </h2>
+<h3> Income Groups </h3>
+
+<svg class="chart"></svg>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var expenditures = [];
+var groups = ['Highest 20%', 'Fourth 20%', 'Third 20%', 'Second 20%', 'Lowest 20%'];
+var datas = [];
+d3.csv("Expenditure.csv", function(error, data) {
+
+  //Read the data from csv
+  for (var i = 0; i < data.length; i++) {
+    expenditures.push(data[i].Expenditure);
+    var total = parseFloat(data[i].Total.replace(/,/g, '')) * 5;
+    var lowest20 = parseFloat(data[i].Lowest20Percent.replace(/,/g, ''));
+    var second20 = parseFloat(data[i].Second20Percent.replace(/,/g, ''));
+    var third20 = parseFloat(data[i].Third20Percent.replace(/,/g, ''));
+    var foutrh20 = parseFloat(data[i].Fourth20Percent.replace(/,/g, ''));
+    var fifth20 = parseFloat(data[i].Highest20Percent.replace(/,/g, ''));
+    datas.push({'Expenditure' : data[i].Expenditure,
+              'Lowest20' : lowest20 / total,
+              'Second20' : second20 / total,
+              'Third20' : third20/ total,
+              'Fourth20' : foutrh20 / total,
+              'Highest20' : fifth20 / total});
+  }
+
+  //Sort data according to highest 20 group
+  datas.sort(function(a, b) {
+    return d3.descending(a.Highest20, b.Highest20);
+  })
+
+  var chartWidth = 900,
+    barHeight = 30,
+    groupHeight = barHeight * expenditures.length, // the total height of the bars in an income group
+    gapBetweenGroups = 5,
+    spaceForLabels = 300,
+    spaceForLegend = 150,
+    gapBetweenIncomeGroups = 170,
+    incomeLabelHeight = 20;
+
+//Every five five elements of the zippedData will contain the information of an expenditure of the five income groups
+//Such that i = 0 to i = 4 will contain the five income groups' data of food, i = 5 to i = 9 will contain the information of housing
+  var zippedData = [];
+
+  for (var i = 0; i < datas.length; i++) {
+    var total = 0;
+    zippedData.push(+datas[i].Highest20);
+    zippedData.push(+datas[i].Fourth20);
+    zippedData.push(+datas[i].Third20);
+    zippedData.push(+datas[i].Second20);
+    zippedData.push((+datas[i].Lowest20));
+    total += datas[i].Lowest20 + datas[i].Second20 + datas[i].Third20 + datas[i].Fourth20 + datas[i].Highest20;
+  }
+
+  //Adding consumer unit data
+  var consumerUnits = [25884, 26019, 25905, 25900, 25842];
+  var unitPercentages = [];
+  var total = 0;
+  for (var i = 0; i < consumerUnits.length; i++) {
+        total += consumerUnits[i];
+    }
+  for (var i = 0; i < consumerUnits.length; i++) {
+      unitPercentages.push(consumerUnits[4 - i] / total);
+      zippedData.push(consumerUnits[4 - i] / total);
+    }
+
+
+  var color = d3.scale.category20();
+  var chartHeight = (barHeight + gapBetweenGroups) * (expenditures.length + 2);
+
+
+  var x = d3.scale.linear()
+          .domain([0, d3.max(zippedData) ])
+          .range([chartWidth / 6, 0]);
+
+
+  var y = d3.scale.linear()
+          .range([chartHeight + gapBetweenGroups, 0]);
+
+  var yAxis = d3.svg.axis()
+              .scale(y)
+              .tickFormat('')
+              .tickSize(0)
+              .orient("left");
+
+ var format = d3.format(",%");
+ 
+  var xAxis = d3.svg.axis()
+              .scale(x)
+              .tickFormat(d3.format(",%"))
+              .ticks(5)
+              .orient("top");
+
+  //Specify the area of the chart
+  var chart = d3.select(".chart")
+              .attr("width", spaceForLegend + spaceForLabels + chartWidth)
+              .attr("height", chartHeight + gapBetweenGroups);
+
+  //Create bars
+  var bar = chart.selectAll("g")
+            .data(zippedData)
+            .enter()
+            .append("g")
+            .attr("transform", function(d, i) {
+              var total = (chartWidth / 5 + 5) * (5 - i % 5);
+              var width = chartWidth/ 5 - x(d);
+              var dx = total - width + spaceForLabels - 250;
+              //var dx = ((i % 5) * gapBetweenIncomeGroups) + spaceForLabels;
+              var dy = (Math.floor(i / 5)) * barHeight + gapBetweenGroups * 0.5 + incomeLabelHeight; 
+              //This is for the consumer unit, we want to append the bar twos lines after the last bar in the expenditures to have space
+              if (i >= 70) {
+                dy = 15 * barHeight + gapBetweenGroups * 0.5 + incomeLabelHeight;
+              }
+              return "translate(" + dx + "," + dy + ")";
+            });
+
+  //Append rectangle
+  bar.append("rect")
+      .attr("fill", "white")
+      .attr("stroke", "black")
+      .attr("class", "bar")
+      .attr("width", function(d, i) {
+        return chartWidth/ 5 - x(d);
+      })
+      .attr("height", barHeight - 1)
+
+  //Append the text to show percentage, for the highest 20 group, since the bar is wider, we show the percentage inside the bar
+  //For other groups, since the bar might be shorter, we show it outside the bar
+  bar.append("text")
+    .attr("x", function(d, i) {
+      if (i % 5 == 0)
+        return 30;
+      else
+        return 0;
+    })
+    .attr("y", barHeight / 2)
+    .attr("dy", ".35em")
+    .text(function(d) {
+      return (d * 100).toFixed(1) + "%";
+    });
+
+
+    //Append text for each expenditure and consumer unit
+    bar.append("text")
+      .attr("class", "label")
+      .attr("x", function(d, i) {
+        if (i % 5 != 0)
+          return 0;
+        //return  chartWidth/ 6 - datas[Math.floor(i / 5)].Expenditure.length;
+        var xPos = chartWidth/ 5 - x(d);
+        return xPos + 10;
+      })
+      .attr("y", function(d, i) {
+        return barHeight / 2;})
+      .attr("dy", ".1em")
+      .text(function(d, i) {
+        if (i % 5 == 0 ) {
+          if (i < 70)
+            return datas[i / 5].Expenditure;
+          else
+            return "Consumer units";
+        }
+        else {
+          return "";
+        }
+      });
+
+    //Add the text for each group
+    var legend = chart.selectAll('.legend')
+                  .data(groups)
+                  .enter()
+                  .append('g')
+                  .attr('transform', function(d, i) {
+                      var dx = (4 - i) * gapBetweenIncomeGroups + spaceForLabels - 100;
+                      return "translate(" + dx + "," + 5 + ")";
+                  });
+
+    legend.append("text")
+          .attr("class", "legend")
+          .attr("y", +10)
+          .attr("x", +5)
+          .text(function(d) {
+            return d;
+          });
+
+    //Draw the line for consumer units
+    chart.selectAll('line')
+        .data(unitPercentages)
+        .enter()
+        .append("line")
+        .attr("x1", function(d, i) {
+          var total = (chartWidth / 5 + 5) * (5 - i % 5);
+          var width = chartWidth/ 5 - x(d);
+          var dx = total - width + spaceForLabels - 250;
+          return dx;
+        })
+        .attr("y1", gapBetweenGroups * 0.5 + incomeLabelHeight)
+        .attr("x2", function(d, i) {
+          var total = (chartWidth / 5 + 5) * (5 - i % 5);
+          var width = chartWidth/ 5 - x(d);
+          var dx = total - width + spaceForLabels - 250;
+          return dx;
+        })
+        .attr("y2", 15 * barHeight + gapBetweenGroups * 0.5 + incomeLabelHeight)
+        .style("stroke-dasharray","2,4")
+        .attr("stroke-width", 2)
+       .attr("stroke", "grey");
+
+    chart.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(" + (chartWidth / 2) + ", " + (chartHeight) + ")")
+        .call(xAxis);
+
+
+});
+
+</script>
+</body>

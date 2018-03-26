@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.arc text {
+  font: 15px sans-serif;
+  text-anchor: middle;
+}
+
+.arc path {
+  stroke: #fff;
+}
+
+body {
+  text-align: center;
+}
+
+</style>
+<body>
+	<h1> Percentage of the five income groups for after tax income </h1>
+	<h2> United States 2016 </h2>
+	<svg width="1000" height="500"></svg>
+
+
+<script src="//d3js.org/d3.v4.min.js"></script>
+
+<script type="text/javascript">
+	var total = 64175 * 5;
+	var array = [{"name" : "Lowest 20 Percent", "value": 11832 / total},
+				{"name" : "Second 20 Percent", "value": 29423 / total}, 
+				{"name" : "Third 20 Percent", "value": 47681 / total},
+				{"name" : "Fourth 20 Percent", "value" : 75065 / total},
+				{"name" : "Highest 20 Percent", "value" : 157215 / total}];
+
+	var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height"),
+    radius = Math.min(width, height) / 2,
+    g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+    var color = d3.scaleOrdinal(d3.schemeCategory10)
+
+    var pie = d3.pie()
+    			.value(function(d) { return +d.value; })
+    			.sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+    var path = d3.arc()
+    			.outerRadius(radius - 10)
+    			.innerRadius(0);
+
+    var label = d3.arc()
+    			.outerRadius(radius - 40)
+    			.innerRadius(radius - 40);
+
+    var arc = g.selectAll(".arc")
+    			.data(pie(array))
+    			.enter()
+    			.append("g")
+    			.attr("class", "arc");
+
+    arc.append("path")
+    	.attr("d", path)
+    	.attr("fill", function(d) {
+    		return color(d.data.name);
+    	});
+
+   	arc.append("text")
+   		.attr("transform", function(d) {
+   			return "translate(" + label.centroid(d) + ")";
+   		})
+   		.attr("dy", "0.35em")
+   		.text(function(d) {
+   			return d.data.name + ": " + (d.data.value * 100).toFixed(1) + "%";
+   		});
+
+
+   	function angle(d) {
+		    var a = (d.startAngle + d.endAngle) * 90 / Math.PI - 90;
+		    return a > 90 ? a - 180 : a;
+		}
+</script>
+</body>

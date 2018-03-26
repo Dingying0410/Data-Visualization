@@ -1,0 +1,207 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  text-align: center;
+}
+
+svg {
+  font: 10px sans-serif;
+}
+
+
+</style>
+<body>
+  <h1>Comparison of expenditures according to income groups</h1>
+  <h2>United States 2016</h2>
+<script src="//d3js.org/d3.v4.min.js"></script>
+
+<script type="text/javascript">
+
+    var m = 15, r = 100, z = d3.scaleOrdinal(d3.schemeCategory10);
+
+    var pie = d3.pie()
+          .value(function(d) { return +d.value; })
+          .sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+    var arc = d3.arc()
+    .innerRadius(0)
+    .outerRadius(r);
+     
+    //Initializing the datas which will store all the information from the csv file
+    datas = new Array();
+          
+    d3.csv("Expenditure.csv", function(error, data) {
+
+        //put the information of each row into the array    
+        data.forEach(function(d) {
+          buildArray(d);
+        });
+
+        //Group the data by their expenditure
+        var expenditures = d3.nest()
+                .key(function(d) {
+                  return d.Expenditure;
+                 })
+                .entries(datas);
+
+        //Draw pie charts 
+        createPieChart(expenditures);
+
+        console.log(expenditures);
+
+
+        //Build the data array, each row of the array contains the value and percentage for one income group
+        function buildArray (data) {
+          var lowest20 = parseFloat(data.Lowest20Percent.replace(/,/g, ''));
+          var second20 = parseFloat(data.Second20Percent.replace(/,/g, ''));
+          var third20 = parseFloat(data.Third20Percent.replace(/,/g, ''));
+          var foutrh20 = parseFloat(data.Fourth20Percent.replace(/,/g, ''));
+          var fifth20 = parseFloat(data.Highest20Percent.replace(/,/g, ''));
+          var total = parseFloat(data.Total.replace(/,/g, '')) * 5;
+          datas.push({"Expenditure": data.Expenditure, "name" : "Lowest 20%", 
+            "value" : lowest20, "precentage" : lowest20 / total});
+          datas.push({"Expenditure": data.Expenditure, "name" : "Second 20%", 
+            "value" : second20, "precentage" : second20 / total});
+            datas.push({"Expenditure": data.Expenditure, "name" : "Third 20%", 
+              "value" : third20, "precentage" : third20 / total});
+            datas.push({"Expenditure": data.Expenditure, "name" : "Fourth 20%", 
+              "value" : foutrh20, "precentage" : foutrh20 / total});
+            datas.push({"Expenditure": data.Expenditure, "name" : "Hihgest 20%", 
+              "value" : fifth20, "precentage" : fifth20 / total});
+            
+          }
+
+
+        function createPieChart (datas) {
+          //Bind the data, and create a series of div and svgs inside each div
+          var svg = d3.select("body").selectAll("div")
+              .data(datas)
+            .enter().append("div") 
+              .style("display", "inline-block")
+              .style("width", function(d, i){
+                if (i == datas.length - 1) {
+                  return (r + m) * 4 + "px"
+                }
+                return (r + m) * 2 + "px";
+              })
+              .style("height", (r + m) * 2 + "px")
+            .append("svg")
+              .attr("width", function(d, i){
+                if (i == datas.length - 1) {
+                  return (r + m) * 4 + "px"
+                }
+                return (r + m) * 2 + "px";
+              })
+              .attr("height", (r + m) * 2)
+            .append("g")
+              .attr("transform", "translate(" + (r + m) + "," + (r + m) + ")");
+
+          
+          //Append the pie chart to svg
+          var g = svg.selectAll("g")
+                .data(function(d, i) {
+                  return pie(d.values); })
+                .enter().append("g");
+
+
+         //Append the name of each expenditure
+          svg.append("text")
+            .attr("dy", "-105px")
+            .attr("font-size", "12px")
+            .attr("text-anchor", "middle")
+            .text(function(d) { 
+              return d.key; 
+            });
+
+          // Add a colored arc path
+          g.append("path")
+              .attr("d", arc)
+              .style("fill", function(d) { 
+                return z(d.data.name); });
+
+          // Add name of each sector (income group) to each sector of the pie chart if the percentage is larger than 8%
+          g.append("text")
+            .attr("dy", ".35em")
+            .attr("text-anchor", "middle")
+            .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")rotate(" + angle(d) + ")"; })
+            .text(function(d) { 
+              if (d.data.precentage < 0.05) {
+                return '';
+              }
+              return d.data.name;
+             });
+
+          //Add the percentage 
+          g.append("text")
+            .attr("transform", function(d) {
+              var _d = arc.centroid(d);
+              _d[0] *= 2.0;
+              _d[1] *= 2.2;
+              return "translate(" + _d + ")";
+            })
+            .attr("dy", "0.50em")
+            .style("text-anchor", "middle")
+            .text(function(d) {
+              if (d.data.precentage < 0.05) {
+                return '';
+              }
+              return ((d.data.precentage  * 100).toFixed() )+ '%';
+            });
+
+          var legendRectSize = 10;
+          var legendSpacing = 1;
+          var count = 0;
+          var legend = svg.selectAll('.legend')
+                      .data(z.domain())
+                      .enter()
+                      .append('g')
+                      .attr('class', 'legend')
+                      .attr('transform', function(d, i) {
+                          var height = legendRectSize + legendSpacing;
+                          var offset =  height * z.domain().length / 2;
+                          var horz = -3 * legendRectSize;
+                          var vert = i * height - offset;
+                          return 'translate(' + 120 + ',' + (vert + 40) + ')';
+                      });
+
+          legend.append('rect')
+              .attr('width', function() {
+                var res = 0;
+                if (Math.floor(count / 5) == 13) {
+                    res = legendRectSize;
+                }
+                count++;
+                return res;
+              })
+              .attr('height', legendRectSize)
+              .style('fill', z)
+              .style('stroke', z);
+
+          count = 0;
+          legend.append('text')
+              .attr('x', legendRectSize + legendSpacing)
+              .attr('y', legendRectSize - legendSpacing)
+              .text(function(d, i) { 
+                var res = "";
+                if (Math.floor(count / 5) == 13) {
+                  res = d;
+                }
+                count++;
+                return res; });
+
+
+         function angle(d) {
+            var a = (d.startAngle + d.endAngle) * 90 / Math.PI - 90;
+            return a > 90 ? a - 180 : a;
+          }
+  
+      }
+
+});
+        </script>
+
+  </body>
+</html>
